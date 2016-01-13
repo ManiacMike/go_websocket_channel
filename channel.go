@@ -2,6 +2,7 @@ package main
 
 import (
 	//"fmt"
+  //"errors"
 	"golang.org/x/net/websocket"
 )
 
@@ -22,7 +23,7 @@ type ChannelServiceGroupConfig struct{
 	AppSecret string
 	TokenMethod int
 	MaxClientConn int
-	GetConnectApi string
+	CreateConnectApi string
 	LoseConnectApi string
 }
 
@@ -30,4 +31,24 @@ type ChannelServiceGroupConfig struct{
 type ChannelServiceGroup struct{
 	Services []ChannelService
 	Config ChannelServiceGroupConfig
+}
+
+
+func initServer() error{
+  config := make(map[string]ChannelServiceGroupConfig)
+  //test application
+  config["test"] = ChannelServiceGroupConfig{"test","test_secret",TOKEN_METHOD_GET,2,"http://localhost","http://localhost"}
+
+  for appid,appconfig := range config{
+    if appconfig.TokenMethod != TOKEN_METHOD_GET && appconfig.TokenMethod != TOKEN_METHOD_COOKIE{
+      return Error("invalid TokenMethod appid: " + appid )
+    }
+    if appconfig.MaxClientConn < 1 || appconfig.MaxClientConn > MAX_CLIENT_CONN{
+      return Error("invalid MaxClientConn appid: " + appid )
+    }
+    channelGroup := []ChannelService{}
+    app := ChannelServiceGroup{channelGroup, appconfig}
+    applications = append(applications,app)
+  }
+  return nil
 }

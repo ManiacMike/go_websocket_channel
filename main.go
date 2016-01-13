@@ -5,9 +5,24 @@ import (
 	"golang.org/x/net/websocket"
 	"log"
 	"net/http"
+	"time"
 )
 
-var applications *[]ChannelServiceGroup
+var applications []ChannelServiceGroup
+
+type ServiceError struct {
+	Msg string
+}
+
+func (e *ServiceError) Error() string {
+	var time = time.Now()
+	return fmt.Sprintf("at %v, %s",
+		time, e.Msg)
+}
+
+func Error(msg string) error{
+	return  &ServiceError{"it didn't work"}
+}
 
 
 func WsServer(ws *websocket.Conn) {
@@ -33,6 +48,8 @@ func WsServer(ws *websocket.Conn) {
 
 func main() {
 
+	var err error
+
 	http.Handle("/", websocket.Handler(WsServer))
 	http.Handle("/api/create", &ApiServer{"create"})//create a ChannelService
 	http.Handle("/api/push", &ApiServer{"push"})
@@ -45,7 +62,12 @@ func main() {
 	//TODO read application info from db or file
 	//TODO offer a init commad to reload application info file
 
-	if err := http.ListenAndServe(":8002", nil); err != nil {
+	if err = initServer(); err != nil {
+		panic(err.Error())
+	}
+	fmt.Println(applications)
+
+	if err = http.ListenAndServe(":8002", nil); err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
 }
