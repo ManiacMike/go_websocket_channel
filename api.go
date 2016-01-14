@@ -9,9 +9,15 @@ import (
 //handle api request from api
 type ApiServer struct{
 	ApiName string
+	AppId string
 }
 
 func (this *ApiServer) ServeHTTP(w http.ResponseWriter, r *http.Request){
+	if err := this.CheckParams(r);err != nil{
+		fmt.Fprint(w, err.Error())
+		return
+	}
+
 	switch this.ApiName {
 	case "create":
 		this.Create(w,r)
@@ -30,8 +36,38 @@ func (this *ApiServer) ServeHTTP(w http.ResponseWriter, r *http.Request){
 	}
 }
 
+func (this *ApiServer) CheckParams(r *http.Request) error{
+	appId := r.PostFormValue("app_id");
+	if appId == ""{
+		return Error("app_id missing")
+	}
+	appSecret := r.PostFormValue("app_secret");
+	if appSecret == ""{
+		return Error("app_secret missing")
+	}
+	config, ok := applications_config[appId];
+	if ok == false{
+		return Error("app_id invalid")
+	}
+	if config.AppSecret != appSecret{
+		return Error("app_secret invalid")
+	}
+	this.AppId = appId
+	return nil
+}
+
+
 func (this *ApiServer ) Create(w http.ResponseWriter, r *http.Request){
-  fmt.Fprint(w, "create api")
+	uid := r.PostFormValue("uid");
+	if uid == ""{
+		fmt.Fprint(w, "Invalid uid")
+		return
+	}
+	token := GenerateId();
+	channelService := ChannelService{Uid:uid,Token:token}
+	appId := this.AppId
+	applications[appId].Services[uid] = channelService
+  fmt.Fprint(w, "create channel success on " + this.AppId)
 }
 
 func (this *ApiServer ) Push(w http.ResponseWriter, r *http.Request){

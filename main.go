@@ -8,7 +8,8 @@ import (
 	"time"
 )
 
-var applications []ChannelServiceGroup
+var applications ChannelServer
+var applications_config ChannelServerConfig
 
 type ServiceError struct {
 	Msg string
@@ -21,7 +22,7 @@ func (e *ServiceError) Error() string {
 }
 
 func Error(msg string) error{
-	return  &ServiceError{"it didn't work"}
+	return  &ServiceError{msg}
 }
 
 
@@ -51,16 +52,18 @@ func main() {
 	var err error
 
 	http.Handle("/", websocket.Handler(WsServer))
-	http.Handle("/api/create", &ApiServer{"create"})//create a ChannelService
-	http.Handle("/api/push", &ApiServer{"push"})
-	http.Handle("/api/broadcast", &ApiServer{"broadcast"})
-	http.Handle("/api/check", &ApiServer{"check"})
-	http.Handle("/api/close", &ApiServer{"close"})//close a specific ChannelService
-	http.Handle("/api/app-status", &ApiServer{"status"})//online num and live connection num
+	http.Handle("/api/create", &ApiServer{ApiName : "create"})//create a ChannelService
+	http.Handle("/api/push", &ApiServer{ApiName : "push"})
+	http.Handle("/api/broadcast", &ApiServer{ApiName : "broadcast"})
+	http.Handle("/api/check", &ApiServer{ApiName : "check"})
+	http.Handle("/api/close", &ApiServer{ApiName : "close"})//close a specific ChannelService
+	http.Handle("/api/app-status", &ApiServer{ApiName : "status"})//online num and live connection num
 
 	fmt.Println("listen on port 8002")
 	//TODO read application info from db or file
 	//TODO offer a init commad to reload application info file
+	applications = make(ChannelServer)
+	applications_config = make(ChannelServerConfig)
 
 	if err = initServer(); err != nil {
 		panic(err.Error())
