@@ -60,3 +60,37 @@ func initServer() error{
   applications_config = valid_config
   return nil
 }
+
+func acceptClientToken(ws *websocket.Conn) error{
+	appId := ws.Request().FormValue("app_id")
+	if appId == ""{
+		return Error("app_id missing")
+	}
+	config, ok := applications_config[appId];
+	if ok == false{
+		return Error("app_id invalid")
+	}
+	uid := ws.Request().FormValue("uid")
+	if uid == ""{
+		return Error("uid missing")
+	}
+	channelService,ok := applications[appId].Services[uid]
+	if ok == false{
+		return Error("uid invalid")
+	}
+	token := ws.Request().FormValue("token")
+	if token == ""{
+		return Error("token missing")
+	}
+	if token != channelService.Token{
+		return Error("invalid token")
+	}
+	//TODO max connection
+	if len(channelService.Conns) > config.MaxClientConn - 1{
+		return Error("max connections")
+	}
+	conns := append(channelService.Conns,ws)
+	channelService.Conns = conns
+	applications[appId].Services[uid] = channelService
+	return nil
+}

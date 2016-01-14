@@ -28,6 +28,9 @@ func Error(msg string) error{
 
 func WsServer(ws *websocket.Conn) {
 	var err error
+	if err = acceptClientToken(ws);err != nil{
+		ws.Close()
+	}
 
 	for {
 		var receiveMsg string
@@ -47,6 +50,13 @@ func WsServer(ws *websocket.Conn) {
 	}
 }
 
+func StaticServer(w http.ResponseWriter, req *http.Request) {
+	http.ServeFile(w, req, "demo/demo.html")
+	// staticHandler := http.FileServer(http.Dir("./"))
+	// staticHandler.ServeHTTP(w, req)
+	return
+}
+
 func main() {
 
 	var err error
@@ -58,6 +68,8 @@ func main() {
 	http.Handle("/api/check", &ApiServer{ApiName : "check"})
 	http.Handle("/api/close", &ApiServer{ApiName : "close"})//close a specific ChannelService
 	http.Handle("/api/app-status", &ApiServer{ApiName : "status"})//online num and live connection num
+
+	http.HandleFunc("/demo", StaticServer)
 
 	fmt.Println("listen on port 8002")
 	//TODO read application info from db or file

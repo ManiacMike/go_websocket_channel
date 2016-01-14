@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>demo</title>
+<script src="https://code.jquery.com/jquery-1.11.3.js"></script>
+<link href="http://cdn.bootcss.com/bootstrap/2.3.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<style>
+  #log{height:400px;width:500px;border:1px solid rgb(55,55,55);border-radius:5px;padding:5px;overflow:auto}
+  p{color:rgb(100,100,100)}
+  textarea{width:500px;}
+</style>
+<div class="container">
+<h1>demo</h1>
+<div id="log">
+</div>
+<br>
+<div>
+<br>
+内容：<textarea id="textarea_content" class="textarea"></textarea>
+<a href="javascript:void(0)" id="send" class="btn" >发送</a>
+</div>
+</div>
+<script>
+  $(function(){
+    function log(msg)
+    {
+      $("#log").html($("#log").html()+msg+"<br><br>")
+    }
+
+    function setCookie(name,value)
+    {
+      var Days = 1;
+      var exp = new Date();
+      exp.setTime(exp.getTime() + Days*24*60*60*1000);
+      document.cookie = name + "="+ escape (value) + ";expires=" + exp.toGMTString();
+    }
+    setCookie("token",213)
+    var status = false
+    //setup websocket with callbacks
+    var ws = new WebSocket('ws://'+window.location.host+'/');
+    ws.onopen = function() {
+      status = true
+      log("<span style='color:green'>连接成功</span>");
+    };
+    ws.onclose = function() {
+      status = true
+      log("<span style='color:red'>失去连接</span>");
+     	 $('#log').scrollTop( $('#log')[0].scrollHeight );
+    };
+    ws.onerror = function(e) {
+      status = true
+      log("error from connect " + e);
+    	 $('#log').scrollTop( $('#log')[0].scrollHeight );
+    }
+    ws.onmessage = function(event) {
+      log("<span>"+event.data+"</span>");
+      $('#log').scrollTop( $('#log')[0].scrollHeight );
+    };
+    function sendMsg(){
+      if(status == "online"){
+        //log(msg);
+        var msg = $("#textarea_content")
+        ws.send(msg);
+        $("#textarea_content").val("");
+        $('#log').scrollTop( $('#log')[0].scrollHeight );
+      }else{
+        alert("连接失败")
+      }
+    }
+    $("#send").click(function(){
+      sendMsg()
+    });
+    document.onkeydown = function(e){
+      var ev = document.all ? window.event : e;
+      if(ev.ctrlKey &&  ev.which==13) {
+          sendMsg()
+          return false
+      }
+    }
+  });
+</script><body></html>
