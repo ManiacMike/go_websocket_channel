@@ -85,11 +85,11 @@ func acceptClientToken(ws *websocket.Conn) error{
 	if token != channelService.Token{
 		return Error("invalid token")
 	}
-	
-	if len(channelService.Conns) > config.MaxClientConn - 1{
-		return Error("max connections")
+	conns := channelService.Conns
+	if len(conns) > (config.MaxClientConn - 1) {
+		conns = conns[1:]
 	}
-	conns := append(channelService.Conns,ws)
+	conns = append(conns,ws)
 	channelService.Conns = conns
 	applications[appId].Services[uid] = channelService
 	return nil
