@@ -9,7 +9,7 @@ import (
 
 const MAX_CLIENT_CONN,DEFAULT_CLIENT_CONN = 5,1
 
-const TOKEN_METHOD_COOKIE,TOKEN_METHOD_GET = 1,2
+//const TOKEN_METHOD_COOKIE,TOKEN_METHOD_GET = 1,2
 
 //refer to one user with multiple client connections
 type ChannelService struct{
@@ -21,7 +21,7 @@ type ChannelService struct{
 type ChannelServiceGroupConfig struct{
 	AppId string
 	AppSecret string
-	TokenMethod int
+	//TokenMethod int
 	MaxClientConn int
 	CreateConnectApi string
 	LoseConnectApi string
@@ -39,14 +39,14 @@ type ChannelServerConfig map[string]ChannelServiceGroupConfig
 func initServer() error{
   config := make(map[string]ChannelServiceGroupConfig)
   //test application
-  config["test"] = ChannelServiceGroupConfig{"test","test_secret",TOKEN_METHOD_GET,2,"http://localhost","http://localhost"}
+  config["test"] = ChannelServiceGroupConfig{"test","test_secret",2,"http://localhost","http://localhost"}
 
   valid_config := make(map[string]ChannelServiceGroupConfig)
 
   for appid,appconfig := range config{
-    if appconfig.TokenMethod != TOKEN_METHOD_GET && appconfig.TokenMethod != TOKEN_METHOD_COOKIE{
-      return Error("invalid TokenMethod appid: " + appid )
-    }
+    // if appconfig.TokenMethod != TOKEN_METHOD_GET && appconfig.TokenMethod != TOKEN_METHOD_COOKIE{
+    //   return Error("invalid TokenMethod appid: " + appid )
+    // }
     if appconfig.MaxClientConn < 1 || appconfig.MaxClientConn > MAX_CLIENT_CONN{
       return Error("invalid MaxClientConn appid: " + appid )
     }
@@ -85,7 +85,7 @@ func acceptClientToken(ws *websocket.Conn) error{
 	if token != channelService.Token{
 		return Error("invalid token")
 	}
-	//TODO max connection
+	
 	if len(channelService.Conns) > config.MaxClientConn - 1{
 		return Error("max connections")
 	}
