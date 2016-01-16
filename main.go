@@ -65,7 +65,7 @@ func main() {
 	http.Handle("/api/create", &ApiServer{ApiName : "create"})//create a ChannelService
 	http.Handle("/api/push", &ApiServer{ApiName : "push"})
 	http.Handle("/api/broadcast", &ApiServer{ApiName : "broadcast"})
-	http.Handle("/api/check", &ApiServer{ApiName : "check"})
+	http.Handle("/api/get-channel", &ApiServer{ApiName : "get-channel"})
 	http.Handle("/api/close", &ApiServer{ApiName : "close"})//close a specific ChannelService
 	http.Handle("/api/app-status", &ApiServer{ApiName : "status"})//online num and live connection num
 

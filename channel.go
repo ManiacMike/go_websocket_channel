@@ -87,6 +87,8 @@ func acceptClientToken(ws *websocket.Conn) error{
 	}
 	conns := channelService.Conns
 	if len(conns) > (config.MaxClientConn - 1) {
+		//close the first conn
+		conns[0].Close()
 		conns = conns[1:]
 	}
 	conns = append(conns,ws)
