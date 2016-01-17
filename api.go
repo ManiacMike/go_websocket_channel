@@ -74,7 +74,8 @@ func (this *ApiServer) CreateChannel(w http.ResponseWriter, r *http.Request) err
 	fmt.Println("token: ", token)
 	channelService := ChannelService{Uid: uid, Token: token}
 	applications[appId].Services[uid] = channelService
-	this.Success("", w)
+	msg := fmt.Sprintf("{\"uid\":\"%v\",\"token\":\"%v\"}", channelService.Uid, channelService.Token)
+	this.Success(msg, w)
 	return nil
 }
 
