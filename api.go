@@ -11,26 +11,28 @@ type ApiServer struct{
 	ApiName string
 	AppId string
 }
+//TODO create a error standard
 
 func (this *ApiServer) ServeHTTP(w http.ResponseWriter, r *http.Request){
 	if err := this.CheckParams(r);err != nil{
-		fmt.Fprint(w, err.Error())
+		returnMsg := fmt.Sprintf("\"code\":400,\"msg\":\"%v\"",err.Error())
+		fmt.Fprint(w, returnMsg)
 		return
 	}
 
 	switch this.ApiName {
-	case "create":
-		this.Create(w,r)
+	case "create-channel":
+		this.CreateChannel(w,r)
 	case "push":
 		this.Push(w,r)
 	case "broadcast":
 		this.Broadcast(w,r)
 	case "get-channel":
 		this.GetChannel(w,r)
-	case "close":
-		this.Close(w,r)
-	case "status":
-		this.Status(w,r)
+	case "close-channel":
+		this.CloseChannel(w,r)
+	case "app-status":
+		this.AppStatus(w,r)
 	default:
 		fmt.Fprint(w, "Invalid api")
 	}
@@ -57,17 +59,22 @@ func (this *ApiServer) CheckParams(r *http.Request) error{
 }
 
 
-func (this *ApiServer ) Create(w http.ResponseWriter, r *http.Request) error{
+func (this *ApiServer ) CreateChannel(w http.ResponseWriter, r *http.Request) error{
 	uid := r.PostFormValue("uid");
 	if uid == ""{
 		return Error("uid missing")
 	}
+	appId := this.AppId
+	_,ok := applications[appId].Services[uid]
+	if ok == true{
+		return Error("channel exist")
+	}
+
 	token := GenerateId();
 	fmt.Println("token: ",token)
 	channelService := ChannelService{Uid:uid,Token:token}
-	appId := this.AppId
 	applications[appId].Services[uid] = channelService
-  this.Success("success",w)
+  this.Success("",w)
 	return nil
 }
 
@@ -82,13 +89,12 @@ func (this *ApiServer ) Push(w http.ResponseWriter, r *http.Request) error{
 		return Error("uid invalid")
 	}
 	msg := r.PostFormValue("message");
-	for i,conn := range channelService.Conns{
+	for _,conn := range channelService.Conns{
 		if err := websocket.Message.Send(conn, msg); err != nil {
-			channelService.Conns = append((channelService.Conns)[:i], (channelService.Conns)[i+1:]...)
-			applications[appId].Services[uid] = channelService
+			applications.removeConn(appId,uid,conn)
 		}
 	}
-  this.Success("success",w)
+  this.Success("",w)
 	return nil
 }
 
@@ -97,14 +103,13 @@ func (this *ApiServer ) Broadcast(w http.ResponseWriter, r *http.Request) error{
 	channelServices := applications[appId]
 	msg := r.PostFormValue("message");
 	for uid,cs := range channelServices.Services{
-		for i,conn := range cs.Conns{
+		for _,conn := range cs.Conns{
 			if err := websocket.Message.Send(conn, msg); err != nil {
-				cs.Conns = append((cs.Conns)[:i], (cs.Conns)[i+1:]...)
-				applications[appId].Services[uid] = cs
+				applications.removeConn(appId,uid,conn)
 			}
 		}
 	}
-	this.Success("success",w)
+	this.Success("",w)
 	return nil
 }
 
@@ -116,41 +121,41 @@ func (this *ApiServer ) GetChannel(w http.ResponseWriter, r *http.Request) error
 	appId := this.AppId
 	channelService,ok := applications[appId].Services[uid]
 	if ok == false{
-		fmt.Fprint(w, "{\"code\":101,\"msg\":\"channel not created\"}")
+		return Error("channel not created")
 	}
-	msg := fmt.Sprintf("{\"uid\":\"%v\",\"token\":\"%v\",\"connections\":%d}",channelService.Uid,channelService.Token,len(channelService.Token))
-	fmt.Fprint(w, msg)
+	msg := fmt.Sprintf("{\"uid\":\"%v\",\"token\":\"%v\",\"connections\":%d}",channelService.Uid,channelService.Token,len(channelService.Conns))
+	this.Success(msg,w)
 	return nil
 }
 
-func (this *ApiServer ) Close(w http.ResponseWriter, r *http.Request) error{
+func (this *ApiServer ) CloseChannel(w http.ResponseWriter, r *http.Request) error{
 	uid := r.PostFormValue("uid");
 	if uid == ""{
 		return Error("uid missing")
 	}
 	appId := this.AppId
-	channelService,ok := applications[appId].Services[uid]
+	_,ok := applications[appId].Services[uid]
 	if ok == false{
 		return Error("uid invalid")
 	}
-	for _,conn := range channelService.Conns{
-		conn.Close()
-	}
-	delete(applications[appId].Services, uid)
-  this.Success("success",w)
+	applications.removeChannel(appId,uid)
+  this.Success("",w)
 	return nil
 }
 
-func (this *ApiServer ) Status(w http.ResponseWriter, r *http.Request) error{
+func (this *ApiServer ) AppStatus(w http.ResponseWriter, r *http.Request) error{
 	appId := this.AppId
 	application := applications[appId]
 	channelNum := len(application.Services)
-	returnMsg := fmt.Sprintf("\"code\":0,\"channelNum\":%d",channelNum)
-  fmt.Fprint(w, returnMsg)
+	msg := fmt.Sprintf("{\"channelNum\":%d}",channelNum)
+  this.Success(msg,w)
 	return nil
 }
 
 func (this *ApiServer ) Success(msg string, w http.ResponseWriter){
-	returnMsg := fmt.Sprintf("\"code\":0,\"msg\":%v",msg)
+	if msg == ""{
+		msg = "\"success\""
+	}
+	returnMsg := fmt.Sprintf("{\"code\":0,\"result\":%v}",msg)
 	fmt.Fprint(w, returnMsg)
 }

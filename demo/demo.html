@@ -29,8 +29,15 @@
     }
 
     var status = false
+    function getUrlParam(name) {
+      var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+      var r = window.location.search.substr(1).match(reg);
+      if (r != null) return unescape(r[2]); return null;
+    }
     //setup websocket with callbacks
-    var ws = new WebSocket('ws://'+window.location.host+'/?uid=123&token=');
+    var token = getUrlParam("token")
+    var uid = getUrlParam("uid")
+    var ws = new WebSocket('ws://'+window.location.host+'/?uid='+uid+'&token='+token+'&app_id=test');
     ws.onopen = function() {
       status = true
       log("<span style='color:green'>连接成功</span>");
@@ -38,7 +45,7 @@
     ws.onclose = function() {
       status = true
       log("<span style='color:red'>失去连接</span>");
-     	 $('#log').scrollTop( $('#log')[0].scrollHeight );
+     	$('#log').scrollTop( $('#log')[0].scrollHeight );
     };
     ws.onerror = function(e) {
       status = true
@@ -50,9 +57,9 @@
       $('#log').scrollTop( $('#log')[0].scrollHeight );
     };
     function sendMsg(){
-      if(status == "online"){
+      if(status == true){
         //log(msg);
-        var msg = $("#textarea_content")
+        var msg = $("#textarea_content").val()
         ws.send(msg);
         $("#textarea_content").val("");
         $('#log').scrollTop( $('#log')[0].scrollHeight );
