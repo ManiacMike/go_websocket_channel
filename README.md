@@ -16,7 +16,7 @@ go web socket gateway server work with http server
 * ip:port/api/push 向一个用户推送
 * ip:port/api/broadcast 向所有的app用户推送
 * ip:port/api/get-channel 获取channel信息
-* ip:port/api/close-channel 关闭channel信息
+* ip:port/api/close-channel 关闭channel
 * ip:port/api/app-status 获取app的状态
 
 # app配置
