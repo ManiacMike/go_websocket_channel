@@ -1,11 +1,13 @@
 package main
 
 import (
-	//"fmt"
+	"fmt"
 	//"errors"
+	"github.com/larspensjo/config"
 	"golang.org/x/net/websocket"
 	"net/http"
 	"net/url"
+	"strconv"
 )
 
 const MAX_CLIENT_CONN, DEFAULT_CLIENT_CONN = 5, 1
@@ -39,13 +41,36 @@ type ApplicationGroup map[string]Application
 type ApplicationGroupConfig map[string]ApplicationConfig
 
 func initServer() error {
-	config := make(map[string]ApplicationConfig)
-	//test application
-	config["test"] = ApplicationConfig{"test", "test_secret", 2, "http://localhost", "http://localhost", "http://localhost"}
+	configMap := make(map[string]ApplicationConfig)
+
+	cfg, err := config.ReadDefault("config.ini")
+	if err != nil {
+		return Error("unable to open config file or wrong fomart")
+	}
+	sections := cfg.Sections()
+	if len(sections) == 0 {
+		return Error("no app config")
+	}
+
+	for _, section := range sections {
+		if section != "DEFAULT" {
+			sectionData, _ := cfg.SectionOptions(section)
+			tmp := make(map[string]string)
+			for _, key := range sectionData {
+				value, err := cfg.String(section, key)
+				if err == nil {
+					tmp[key] = value
+				}
+			}
+			maxClientConn, _ := strconv.Atoi(tmp["MaxClientConn"])
+			configMap[section] = ApplicationConfig{tmp["AppId"], tmp["AppSecret"], maxClientConn, tmp["GetConnectApi"], tmp["LoseConnectApi"], tmp["MessageTransferApi"]}
+		}
+	}
+	fmt.Println(configMap)
 
 	valid_config := make(map[string]ApplicationConfig)
 
-	for appid, appconfig := range config {
+	for appid, appconfig := range configMap {
 		// if appconfig.TokenMethod != TOKEN_METHOD_GET && appconfig.TokenMethod != TOKEN_METHOD_COOKIE{
 		//   return Error("invalid TokenMethod appid: " + appid )
 		// }
