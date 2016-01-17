@@ -119,7 +119,7 @@ func acceptClientToken(ws *websocket.Conn) (string, string, error) {
 	}
 	conns = append(conns, ws)
 	if len(conns) == 1 && config.GetConnectApi != "" {
-		go http.PostForm(config.GetConnectApi, url.Values{"uid": {uid}})
+		go http.PostForm(config.GetConnectApi, url.Values{"uid": {uid}, "event": {"connect"}})
 	}
 	channelService.Conns = conns
 	applications[appId].Services[uid] = channelService
@@ -141,7 +141,7 @@ func (this *ApplicationGroup) removeConn(appId, uid string, ws *websocket.Conn) 
 	}
 	(*this)[appId].Services[uid] = cs
 	if len(cs.Conns) == 0 && config.LoseConnectApi != "" {
-		go http.PostForm(config.LoseConnectApi, url.Values{"uid": {uid}})
+		go http.PostForm(config.LoseConnectApi, url.Values{"uid": {uid}, "event": {"disconnect"}})
 	}
 	return nil
 }

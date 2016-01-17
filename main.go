@@ -45,7 +45,7 @@ func WsServer(ws *websocket.Conn) {
 		}
 		fmt.Println(receiveMsg)
 		if config.MessageTransferApi != "" {
-			go http.PostForm(config.MessageTransferApi, url.Values{"uid": {uid}, "message": {receiveMsg}})
+			go http.PostForm(config.MessageTransferApi, url.Values{"uid": {uid}, "data": {receiveMsg}, "event": {"message"}})
 		}
 	}
 }
