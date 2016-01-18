@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
 	//"errors"
-	"github.com/larspensjo/config"
+	// "github.com/larspensjo/config"
 	"golang.org/x/net/websocket"
 	"net/http"
 	"net/url"
-	"strconv"
+	// "strconv"
 )
 
 const MAX_CLIENT_CONN, DEFAULT_CLIENT_CONN = 5, 1
@@ -40,91 +40,6 @@ type Application struct {
 type ApplicationGroup map[string]Application
 type ApplicationGroupConfig map[string]ApplicationConfig
 
-func initServer() error {
-	configMap := make(map[string]ApplicationConfig)
-
-	cfg, err := config.ReadDefault("config.ini")
-	if err != nil {
-		return Error("unable to open config file or wrong fomart")
-	}
-	sections := cfg.Sections()
-	if len(sections) == 0 {
-		return Error("no app config")
-	}
-
-	for _, section := range sections {
-		if section != "DEFAULT" {
-			sectionData, _ := cfg.SectionOptions(section)
-			tmp := make(map[string]string)
-			for _, key := range sectionData {
-				value, err := cfg.String(section, key)
-				if err == nil {
-					tmp[key] = value
-				}
-			}
-			maxClientConn, _ := strconv.Atoi(tmp["MaxClientConn"])
-			configMap[section] = ApplicationConfig{tmp["AppId"], tmp["AppSecret"], maxClientConn, tmp["GetConnectApi"], tmp["LoseConnectApi"], tmp["MessageTransferApi"]}
-		}
-	}
-	fmt.Println(configMap)
-
-	valid_config := make(map[string]ApplicationConfig)
-
-	for appid, appconfig := range configMap {
-		// if appconfig.TokenMethod != TOKEN_METHOD_GET && appconfig.TokenMethod != TOKEN_METHOD_COOKIE{
-		//   return Error("invalid TokenMethod appid: " + appid )
-		// }
-		if appconfig.MaxClientConn < 1 || appconfig.MaxClientConn > MAX_CLIENT_CONN {
-			return Error("invalid MaxClientConn appid: " + appid)
-		}
-		channelGroup := make(map[string]ChannelService)
-		app := Application{channelGroup, appconfig}
-
-		applications[appid] = app
-		valid_config[appid] = appconfig
-	}
-	applications_config = valid_config
-	return nil
-}
-
-func acceptClientToken(ws *websocket.Conn) (string, string, error) {
-	appId := ws.Request().FormValue("app_id")
-	if appId == "" {
-		return "", "", Error("app_id missing")
-	}
-	config, ok := applications_config[appId]
-	if ok == false {
-		return "", "", Error("app_id invalid")
-	}
-	uid := ws.Request().FormValue("uid")
-	if uid == "" {
-		return "", "", Error("uid missing")
-	}
-	channelService, ok := applications[appId].Services[uid]
-	if ok == false {
-		return "", "", Error("uid invalid")
-	}
-	token := ws.Request().FormValue("token")
-	if token == "" {
-		return "", "", Error("token missing")
-	}
-	if token != channelService.Token {
-		return "", "", Error("invalid token")
-	}
-	conns := channelService.Conns
-	if len(conns) > (config.MaxClientConn - 1) {
-		//close the first conn
-		conns[0].Close()
-		conns = conns[1:]
-	}
-	conns = append(conns, ws)
-	if len(conns) == 1 && config.GetConnectApi != "" {
-		go http.PostForm(config.GetConnectApi, url.Values{"uid": {uid}, "event": {"connect"}})
-	}
-	channelService.Conns = conns
-	applications[appId].Services[uid] = channelService
-	return appId, uid, nil
-}
 
 //remove lost conns
 func (this *ApplicationGroup) removeConn(appId, uid string, ws *websocket.Conn) error {

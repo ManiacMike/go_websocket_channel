@@ -5,7 +5,9 @@ import (
 	"golang.org/x/net/websocket"
 	"log"
 	"net/http"
-	"net/url"
+	// "net/url"
+	"github.com/larspensjo/config"
+	"strconv"
 	"time"
 )
 
@@ -26,35 +28,59 @@ func Error(msg string) error {
 	return &ServiceError{msg}
 }
 
-func WsServer(ws *websocket.Conn) {
-	var err error
-	var appId, uid string
-	if appId, uid, err = acceptClientToken(ws); err != nil {
-		errMsg := err.Error()
-		websocket.Message.Send(ws, errMsg)
-		ws.Close()
-		return
-	}
-	config := applications_config[appId]
-	for {
-		var receiveMsg string
-
-		if err = websocket.Message.Receive(ws, &receiveMsg); err != nil {
-			applications.removeConn(appId, uid, ws)
-			break
-		}
-		fmt.Println(receiveMsg)
-		if config.MessageTransferApi != "" {
-			go http.PostForm(config.MessageTransferApi, url.Values{"uid": {uid}, "data": {receiveMsg}, "event": {"message"}})
-		}
-	}
-}
 
 func StaticServer(w http.ResponseWriter, req *http.Request) {
 	http.ServeFile(w, req, "demo/demo.html")
 	// staticHandler := http.FileServer(http.Dir("./"))
 	// staticHandler.ServeHTTP(w, req)
 	return
+}
+
+func initServer() error {
+	configMap := make(map[string]ApplicationConfig)
+
+	cfg, err := config.ReadDefault("config.ini")
+	if err != nil {
+		return Error("unable to open config file or wrong fomart")
+	}
+	sections := cfg.Sections()
+	if len(sections) == 0 {
+		return Error("no app config")
+	}
+
+	for _, section := range sections {
+		if section != "DEFAULT" {
+			sectionData, _ := cfg.SectionOptions(section)
+			tmp := make(map[string]string)
+			for _, key := range sectionData {
+				value, err := cfg.String(section, key)
+				if err == nil {
+					tmp[key] = value
+				}
+			}
+			maxClientConn, _ := strconv.Atoi(tmp["MaxClientConn"])
+			configMap[section] = ApplicationConfig{tmp["AppId"], tmp["AppSecret"], maxClientConn, tmp["GetConnectApi"], tmp["LoseConnectApi"], tmp["MessageTransferApi"]}
+		}
+	}
+	fmt.Println(configMap)
+
+	valid_config := make(map[string]ApplicationConfig)
+
+	for appid, appconfig := range configMap {
+		// if appconfig.TokenMethod != TOKEN_METHOD_GET && appconfig.TokenMethod != TOKEN_METHOD_COOKIE{
+		//   return Error("invalid TokenMethod appid: " + appid )
+		// }
+		if appconfig.MaxClientConn < 1 || appconfig.MaxClientConn > MAX_CLIENT_CONN {
+			return Error("invalid MaxClientConn appid: " + appid)
+		}
+		channelGroup := make(map[string]ChannelService)
+		app := Application{channelGroup, appconfig}
+
+		applications[appid] = app
+		valid_config[appid] = appconfig
+	}
+	applications_config = valid_config
+	return nil
 }
 
 func main() {
