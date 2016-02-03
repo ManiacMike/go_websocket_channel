@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"golang.org/x/net/websocket"
 	"net/http"
+	"time"
 )
 
 //handle api request from api
@@ -16,7 +17,7 @@ type ApiServer struct {
 
 func (this *ApiServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := this.CheckParams(r); err != nil {
-		returnMsg := fmt.Sprintf("\"code\":400,\"msg\":\"%v\"", err.Error())
+		returnMsg := fmt.Sprintf("{\"code\":400,\"msg\":\"%v\",\"time\":%v}", err.Error(), time.Now().Unix())
 		fmt.Fprint(w, returnMsg)
 		return
 	}

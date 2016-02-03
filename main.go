@@ -8,7 +8,6 @@ import (
 	// "net/url"
 	"github.com/larspensjo/config"
 	"strconv"
-	"time"
 )
 
 var applications ApplicationGroup
@@ -19,9 +18,7 @@ type ServiceError struct {
 }
 
 func (e *ServiceError) Error() string {
-	var time = time.Now()
-	return fmt.Sprintf("at %v, %s",
-		time, e.Msg)
+	return fmt.Sprintf("%s",e.Msg)
 }
 
 func Error(msg string) error {
