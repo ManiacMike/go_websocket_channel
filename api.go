@@ -65,9 +65,11 @@ func (this *ApiServer) CreateChannel(w http.ResponseWriter, r *http.Request) err
 		return Error("uid missing")
 	}
 	appId := this.AppId
-	_, ok := applications[appId].Services[uid]
+	existChannelService, ok := applications[appId].Services[uid]
 	if ok == true {
-		return Error("channel exist")
+		msg := fmt.Sprintf("{\"uid\":\"%v\",\"token\":\"%v\"}", existChannelService.Uid, existChannelService.Token)
+		this.Success(msg, w)
+		return nil
 	}
 
 	token := GenerateId()

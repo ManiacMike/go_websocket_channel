@@ -98,7 +98,6 @@ func main() {
 	http.HandleFunc("/demo", StaticServer)
 
 	fmt.Println("listen on port 8002")
-	//TODO read application info from db or file
 	//TODO offer a init commad to reload application info file
 	applications = make(ApplicationGroup)
 	applications_config = make(ApplicationGroupConfig)
