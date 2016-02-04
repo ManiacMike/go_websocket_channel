@@ -5,6 +5,7 @@ import (
 	"golang.org/x/net/websocket"
 	"net/http"
 	"time"
+	"strings"
 )
 
 //handle api request from api
@@ -66,9 +67,9 @@ func (this *ApiServer) CreateChannel(w http.ResponseWriter, r *http.Request) err
 		return Error("uid missing")
 	}
 	appId := this.AppId
-	existChannelService, ok := applications[appId].Services[uid]
+	c, ok := applications[appId].Services[uid]
 	if ok == true {
-		msg := fmt.Sprintf("{\"uid\":\"%v\",\"token\":\"%v\"}", existChannelService.Uid, existChannelService.Token)
+		msg := fmt.Sprintf("{\"uid\":\"%v\",\"token\":\"%v\"}", c.Uid, c.Token)
 		this.Success(msg, w)
 		return nil
 	}
@@ -83,19 +84,22 @@ func (this *ApiServer) CreateChannel(w http.ResponseWriter, r *http.Request) err
 }
 
 func (this *ApiServer) Push(w http.ResponseWriter, r *http.Request) error {
-	uid := r.PostFormValue("uid")
-	if uid == "" {
+	uidStr := r.PostFormValue("uid")
+	if uidStr == "" {
 		return Error("uid missing")
 	}
 	appId := this.AppId
-	channelService, ok := applications[appId].Services[uid]
-	if ok == false {
-		return Error("uid invalid")
-	}
-	msg := r.PostFormValue("message")
-	for _, conn := range channelService.Conns {
-		if err := websocket.Message.Send(conn, msg); err != nil {
-			applications.removeConn(appId, uid, conn)
+	uidSlice := strings.Split(uidStr, ",")
+	for _,uid := range uidSlice{
+		channelService, ok := applications[appId].Services[uid]
+		if ok == false {
+			continue
+		}
+		msg := r.PostFormValue("message")
+		for _, conn := range channelService.Conns {
+			if err := websocket.Message.Send(conn, msg); err != nil {
+				applications.removeConn(appId, uid, conn)
+			}
 		}
 	}
 	this.Success("", w)
